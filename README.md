@@ -1,6 +1,6 @@
-# CloudXRClientDemo
+# CloudXR Client Demo
 
-The Project integrates with CloudXR v3.0 uisng Pico Native SDK v1.3.5
+The Project integrates with CloudXR v3.0 using Pico [Native SDK v1.3.5](https://developer.pico-interactive.com/sdk/index?id=6)
 
 ## Usage
 1. Before building the project, you need to download the CloudXR SDK v3.0.
