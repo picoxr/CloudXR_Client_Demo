@@ -1,6 +1,6 @@
 # CloudXRClientDemo
 
-The Project uses ``the Pico Android Native SDK v1.3.5`` and ``the CloudXR SDK v3.0``
+The Project integrates with CloudXR v3.0 uisng Pico Native SDK v1.3.5
 
 ## Usage
 1. Clone this repo and make project in Android Studio;
