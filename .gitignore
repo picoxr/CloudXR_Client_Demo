@@ -1,6 +1,8 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Android template
 # Built application files
 *.apk
-*.aar
+# *.aar
 *.ap_
 *.aab
 
@@ -83,3 +85,20 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+
+.idea/.gitignore
+.idea/caches/
+.idea/compiler.xml
+.idea/inspectionProfiles/
+.idea/misc.xml
+.idea/modules/
+.idea/vcs.xml
+.idea/jarRepositories.xml
+
+app/.cxx/
+.gitattributes
+.idea/checkstyle-idea.xml
+.idea/checkstyleidea.tmp/
+.idea/runConfigurations.xml
+
+libs/
