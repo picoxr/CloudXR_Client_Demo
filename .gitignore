@@ -100,5 +100,3 @@ app/.cxx/
 .idea/checkstyle-idea.xml
 .idea/checkstyleidea.tmp/
 .idea/runConfigurations.xml
-
-libs/
