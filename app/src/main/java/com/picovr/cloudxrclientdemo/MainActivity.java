@@ -118,6 +118,7 @@ public class MainActivity extends VRActivity implements RenderInterface, SensorE
         poseTime[2] = 0;
 
         nativeSetRenderPose(nativePtr, poseData, poseTime);
+        com.picovr.cloudxrclientdemo.JniInterface.setHaptic();
     }
 
     @Override
@@ -144,6 +145,11 @@ public class MainActivity extends VRActivity implements RenderInterface, SensorE
 
         com.picovr.cloudxrclientdemo.JniInterface.init();
         com.picovr.cloudxrclientdemo.JniInterface.connect();
+    }
+
+    @Override
+    public void deInitGL() {
+
     }
 
     @Override

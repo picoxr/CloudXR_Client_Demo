@@ -20,4 +20,6 @@ public class JniInterface {
     public static native void processControllerEvent(int deviceType, int inputId, int eventType);
 
     public static native void processJoystick(float leftX, float leftY, float rightX, float rightY);
+
+    public static native void setHaptic();
 }

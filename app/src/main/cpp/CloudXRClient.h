@@ -72,6 +72,11 @@ public:
 
     void TeardownReceiver();
 
+    void TriggerHaptic(const cxrHapticFeedback *);
+
+    float hapticData[3] = {-1};
+    void GetHapticData(float *data);
+
 private:
     cxrReceiverHandle mReceiver = nullptr;
     cxrDeviceDesc mDeviceDesc = {};

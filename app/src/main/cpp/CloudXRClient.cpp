@@ -100,6 +100,11 @@ cxrError CloudXRClient::CreateReceiver() {
         return reinterpret_cast<CloudXRClient *>(context)->GetTrackingState(trackingState);
     };
 
+    clientProxy.TriggerHaptic = [](void *context, const cxrHapticFeedback *haptic) {
+        cxrHapticFeedback &haptic1 = const_cast<cxrHapticFeedback &>(*haptic);
+        return reinterpret_cast<CloudXRClient *>(context)->TriggerHaptic(haptic);
+    };
+
     clientProxy.RenderAudio = [](void *context, const cxrAudioFrame *audioFrame) {
         return reinterpret_cast<CloudXRClient *>(context)->RenderAudio(audioFrame);
     };
@@ -537,4 +542,21 @@ void CloudXRClient::FillBackground() const {
     float ca = ((mBGColor & 0xFF000000) >> 24) / 255.0f;
     glClearColor(cr, cg, cb, ca);
     glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void CloudXRClient::TriggerHaptic(const cxrHapticFeedback *hapticFeedback) {
+    const cxrHapticFeedback &haptic = *hapticFeedback;
+
+    if (haptic.seconds > 0) {
+        hapticData[0] = haptic.amplitude;
+        hapticData[1] = haptic.seconds * 10000;
+        hapticData[2] = haptic.controllerIdx;
+    }
+}
+
+void CloudXRClient::GetHapticData(float *data) {
+    data[0] = hapticData[0];
+    data[1] = hapticData[1];
+    data[2] = hapticData[2];
+    memset(hapticData, -1, sizeof(hapticData));
 }

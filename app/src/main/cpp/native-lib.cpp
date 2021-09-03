@@ -145,3 +145,23 @@ Java_com_picovr_cloudxrclientdemo_JniInterface_processJoystick(JNIEnv *env, jcla
         cloudXrClient->ProcessJoystick(left_x, left_y, right_x, right_y);
     }
 }
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_picovr_cloudxrclientdemo_JniInterface_setHaptic(JNIEnv *env, jclass clazz) {
+    jclass clazs = env->FindClass("com/picovr/picovrlib/cvcontrollerclient/ControllerClient");
+    if (clazs == NULL) {
+        LOGE("Cannot find ControllerClient class");
+        return;
+    }
+    jmethodID methodId = env->GetStaticMethodID(clazs, "vibrateCV2ControllerStrength", "(FII)V");
+    if (methodId == NULL) {
+        LOGE("Cannot find the vibrateCV2ControllerStrength method");
+        return;
+    }
+    float data[3] = {-1};
+    cloudXrClient->GetHapticData(data);
+    if (data[0] > 0 && data[1] > 0) {
+        env->CallStaticVoidMethod(clazs, methodId, data[0], (int)data[1], (int)data[2]);
+    }
+}
