@@ -5,7 +5,7 @@
 The Project integrates with CloudXR v3.0 using [Pico Native SDK](https://developer.pico-interactive.com/sdk/index?id=6)
 
 ## Feature
-1. The Pico Native SDK upgrade to v1.3.6
+1. The Pico Native SDK upgrades to v1.3.6
 2. Add support for the controller haptic
 
 ## Usage
