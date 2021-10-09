@@ -243,12 +243,12 @@ void CloudXRClient::GetDeviceDesc(cxrDeviceDesc *params) {
     params->disablePosePrediction = false;
     params->angularVelocityInDeviceSpace = false;
     params->foveatedScaleFactor = (GOptions.mFoveation < 100) ? GOptions.mFoveation : 0;
-    params->maxResFactor = 1.2f;
+    params->maxResFactor = 1.0f;
 
-    params->proj[0][0] = -1.258572;
-    params->proj[0][1] = 1.258572;
-    params->proj[0][2] = -1.258572;
-    params->proj[0][3] = 1.258572;
+    params->proj[0][0] = -1.25;
+    params->proj[0][1] = 1.25;
+    params->proj[0][2] = -1.25;
+    params->proj[0][3] = 1.25;
 
     params->proj[1][0] = params->proj[0][0];
     params->proj[1][1] = params->proj[0][1];

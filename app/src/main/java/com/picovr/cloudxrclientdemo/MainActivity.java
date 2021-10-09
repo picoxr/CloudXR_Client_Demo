@@ -70,6 +70,7 @@ public class MainActivity extends VRActivity implements RenderInterface, SensorE
     @Override
     protected void onResume() {
         super.onResume();
+        PicovrSDK.SetEyeBufferSize(1832, 1920);
         PicovrSDK.setTrackingOriginType(1);
     }
 
