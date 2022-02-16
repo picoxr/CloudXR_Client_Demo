@@ -12,122 +12,95 @@ Java_com_picovr_cloudxrclientdemo_JniInterface_init(JNIEnv *env, jclass clazz) {
     cloudXrClient->Init();
 }
 
-
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_connect(JNIEnv *env, jclass clazz) {
-    cloudXrClient->CreateReceiver();
+    if (cloudXrClient != nullptr) {
+        cloudXrClient->CreateReceiver();
+    }
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_latchFrame(JNIEnv *env, jclass clazz) {
-    cloudXrClient->LatchFrame();
+    if (cloudXrClient != nullptr) {
+        cloudXrClient->LatchFrame();
+    }
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_releaseFrame(JNIEnv *env, jclass clazz) {
-    cloudXrClient->ReleaseFrame();
+    if (cloudXrClient != nullptr) {
+        cloudXrClient->ReleaseFrame();
+    }
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_teardownReceiver(JNIEnv *env, jclass clazz) {
-    cloudXrClient->TeardownReceiver();
+    if (cloudXrClient != nullptr) {
+        cloudXrClient->TeardownReceiver();
+    }
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_setHmdMatrix(JNIEnv *env, jclass clazz,
-                                                       jfloatArray matrix) {
+                                                            jfloatArray matrix) {
+    auto *matrix_ = (jfloat *) env->GetFloatArrayElements(matrix, nullptr);
     if (cloudXrClient != nullptr) {
-        jfloat *matrix_ = (jfloat *) env->GetFloatArrayElements(matrix, 0);
         cloudXrClient->setHmdMatrix(matrix_);
     }
+    free(matrix_);
 }
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_picovr_cloudxrclientdemo_JniInterface_getTextureId(JNIEnv *env, jclass clazz, jint eye_type) {
+Java_com_picovr_cloudxrclientdemo_JniInterface_getTextureId(JNIEnv *env, jclass clazz,
+                                                            jint eye_type) {
     return cloudXrClient->getTextureId(eye_type);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_picovr_cloudxrclientdemo_JniInterface_getTextureHmdMatrix34(JNIEnv *env, jclass clazz,
-                                                                jfloatArray hmd_matrix34) {
-    jfloat *hmd_matrix34_ = (jfloat *) env->GetFloatArrayElements(hmd_matrix34,
-                                                                  0);
-    cloudXrClient->getTextureHmdMatrix34(hmd_matrix34_);
-    LOGI("onFrame Ndk %f %f %f %f %f %f", hmd_matrix34_[0], hmd_matrix34_[1], hmd_matrix34_[2],
-         hmd_matrix34_[3], hmd_matrix34_[4], hmd_matrix34_[5], hmd_matrix34_[6]);
-//    env->ReleaseFloatArrayElements(hmd_matrix34, hmd_matrix34_,0);
-}
-
-extern "C"
-JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_setLeftControllerMat(JNIEnv *env, jclass clazz,
-                                                               jfloatArray mat4_) {
-    jfloat *pVector = env->GetFloatArrayElements(mat4_, 0);
-    if (cloudXrClient != NULL) {
+                                                                    jfloatArray mat4_) {
+    jfloat *pVector = env->GetFloatArrayElements(mat4_, nullptr);
+    if (cloudXrClient != nullptr) {
         cloudXrClient->setLeftControllerMat4(pVector);
     }
-    env->ReleaseFloatArrayElements(mat4_, pVector, 0);
+    free(pVector);
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_setRightControllerMat(JNIEnv *env, jclass clazz,
-                                                                jfloatArray mat4_) {
-    jfloat *pVector = env->GetFloatArrayElements(mat4_, 0);
-    if (cloudXrClient != NULL) {
+                                                                     jfloatArray mat4_) {
+    jfloat *pVector = env->GetFloatArrayElements(mat4_, nullptr);
+    if (cloudXrClient != nullptr) {
         cloudXrClient->setRightControllerMat4(pVector);
     }
-    env->ReleaseFloatArrayElements(mat4_, pVector, 0);
+    free(pVector);
 }
 
 extern "C"
 JNIEXPORT jfloatArray JNICALL
-Java_com_picovr_cloudxrclientdemo_JniInterface_getTextureReturnHmdMatrix(JNIEnv *env, jclass clazz) {
-    float matrix[12] = {0};
-    cloudXrClient->getTextureHmdMatrix34(matrix);
-    return reinterpret_cast<jfloatArray>(matrix);
-}
-
-jmethodID methodId = NULL;
-
-extern "C"
-JNIEXPORT void JNICALL
-Java_com_picovr_cloudxrclientdemo_JniInterface_setTextureHmdMatrix(JNIEnv *env, jclass clazz,
-                                                              jobject main_activity) {
-    jclass clazz_ = env->FindClass("com/picovr/cloudxrclientdemo/MainActivity");
-    if (clazz_ == NULL) {
-        LOGI("Cannot find MainActivity class");
-        return;
-    }
-
-    if (methodId == NULL) {
-        methodId = env->GetMethodID(clazz_, "setTextureHmdMatrix", "([F)V");
-        if (methodId == NULL) {
-            LOGI("Cannot find the setTextureHmdMatrix method");
-            return;
-        }
-    }
+Java_com_picovr_cloudxrclientdemo_JniInterface_getTextureHmdMatrix(JNIEnv *env, jclass clazz) {
     jfloatArray matrixJni = env->NewFloatArray(12);
 
     float matrix[12] = {0};
     cloudXrClient->getTextureHmdMatrix34(matrix);
-
     env->SetFloatArrayRegion(matrixJni, 0, 12, matrix);
-    env->CallVoidMethod(main_activity, methodId, matrixJni);
+    return matrixJni;
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_picovr_cloudxrclientdemo_JniInterface_processControllerEvent(JNIEnv *env, jclass clazz,
-                                                                 jint device_type, jint input_id,
-                                                                 jint event_type) {
+                                                                      jint device_type,
+                                                                      jint input_id,
+                                                                      jint event_type) {
     if (cloudXrClient != nullptr) {
         PVR_InputEvent_ inputEvent = {static_cast<PVR_DeviceType>(device_type),
                                       static_cast<PVR_InputId>(input_id),
@@ -138,30 +111,21 @@ Java_com_picovr_cloudxrclientdemo_JniInterface_processControllerEvent(JNIEnv *en
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_picovr_cloudxrclientdemo_JniInterface_processJoystick(JNIEnv *env, jclass clazz, jfloat left_x,
-                                                          jfloat left_y, jfloat right_x,
-                                                          jfloat right_y) {
+Java_com_picovr_cloudxrclientdemo_JniInterface_processJoystick(JNIEnv *env, jclass clazz,
+                                                               jfloat left_x,
+                                                               jfloat left_y, jfloat right_x,
+                                                               jfloat right_y) {
     if (cloudXrClient != nullptr) {
         cloudXrClient->ProcessJoystick(left_x, left_y, right_x, right_y);
     }
 }
 
 extern "C"
-JNIEXPORT void JNICALL
-Java_com_picovr_cloudxrclientdemo_JniInterface_setHaptic(JNIEnv *env, jclass clazz) {
-    jclass clazs = env->FindClass("com/picovr/picovrlib/cvcontrollerclient/ControllerClient");
-    if (clazs == NULL) {
-        LOGE("Cannot find ControllerClient class");
-        return;
-    }
-    jmethodID methodId = env->GetStaticMethodID(clazs, "vibrateCV2ControllerStrength", "(FII)V");
-    if (methodId == NULL) {
-        LOGE("Cannot find the vibrateCV2ControllerStrength method");
-        return;
-    }
+JNIEXPORT jfloatArray JNICALL
+Java_com_picovr_cloudxrclientdemo_JniInterface_getHapticData(JNIEnv *env, jclass clazz) {
+    jfloatArray dataJni = env->NewFloatArray(3);
     float data[3] = {-1};
     cloudXrClient->GetHapticData(data);
-    if (data[0] > 0 && data[1] > 0) {
-        env->CallStaticVoidMethod(clazs, methodId, data[0], (int)data[1], (int)data[2]);
-    }
+    env->SetFloatArrayRegion(dataJni, 0, 3, data);
+    return dataJni;
 }

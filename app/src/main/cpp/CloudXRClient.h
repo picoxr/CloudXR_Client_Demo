@@ -45,7 +45,7 @@ static inline cxrVector3 ToAngleAxis(float yaw, float pitch, float roll)
 class CloudXRClient : public oboe::AudioStreamDataCallback{
 public:
     void Init();
-    void GetDeviceDesc(cxrDeviceDesc *params);
+    void GetDeviceDesc(cxrDeviceDesc *params) const;
     cxrError QueryChaperone(cxrDeviceDesc *deviceDesc) const;
 
     bool LatchFrame();

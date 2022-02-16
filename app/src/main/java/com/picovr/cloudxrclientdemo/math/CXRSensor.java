@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.picovr.cloudxrclientdemo.JniInterface;
 import com.picovr.cloudxrclientdemo.controller.ControllerManager;
+import com.picovr.picovrlib.cvcontrollerclient.ControllerClient;
 
 import java.util.Arrays;
 
@@ -25,12 +26,7 @@ public class CXRSensor {
     }
 
     public void start() {
-        Thread mThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                submitSensor();
-            }
-        });
+        Thread mThread = new Thread(this::submitSensor);
         mThread.start();
     }
 

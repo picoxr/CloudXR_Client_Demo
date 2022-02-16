@@ -95,13 +95,13 @@ cxrError CloudXRClient::CreateReceiver() {
         LOGE("Error, null context");
     }
 
-    cxrClientCallbacks clientProxy = {0};
+    cxrClientCallbacks clientProxy = {nullptr};
     clientProxy.GetTrackingState = [](void *context, cxrVRTrackingState *trackingState) {
         return reinterpret_cast<CloudXRClient *>(context)->GetTrackingState(trackingState);
     };
 
     clientProxy.TriggerHaptic = [](void *context, const cxrHapticFeedback *haptic) {
-        cxrHapticFeedback &haptic1 = const_cast<cxrHapticFeedback &>(*haptic);
+        auto &haptic1 = const_cast<cxrHapticFeedback &>(*haptic);
         return reinterpret_cast<CloudXRClient *>(context)->TriggerHaptic(haptic);
     };
 
@@ -119,20 +119,19 @@ cxrError CloudXRClient::CreateReceiver() {
                 LOGE("Async connection succeeded.");
                 break;
             case cxrClientState_ConnectionAttemptFailed:
-                LOGE("Connection attempt failed. [%s]", cxrStateReasonString(reason));
+                LOGE("Connection attempt failed. [%u]", cxrClientState(reason));
                 break;
             case cxrClientState_Disconnected:
-                LOGE("Server disconnected with reason: [%s]", cxrStateReasonString(reason));
+                LOGE("Server disconnected with reason: [%u]", cxrClientState(reason));
                 break;
             default:
-                LOGE("Client state updated: %s, reason: %s", cxrClientStateString(state),
-                     cxrStateReasonString(reason));
+                LOGE("Client state updated: %u, reason: %u", cxrClientState(state),
+                     cxrClientState(reason));
                 break;
         }
         reinterpret_cast<CloudXRClient *>(context)->mClientState = state;
         reinterpret_cast<CloudXRClient *>(context)->mClientStateReason = reason;
-        LOGE("Client state updated: %s, reason: %s", cxrClientStateString(state),
-             cxrStateReasonString(reason));
+        LOGE("Client state updated: %u, reason: %u", cxrClientState(state), cxrClientState(reason));
     };
 
     cxrReceiverDesc desc = {0};
@@ -145,6 +144,7 @@ cxrError CloudXRClient::CreateReceiver() {
     desc.receiverMode = cxrStreamingMode_XR;
     desc.debugFlags = GOptions.mDebugFlags;
     desc.logMaxSizeKB = CLOUDXR_LOG_MAX_DEFAULT;
+
     desc.logMaxAgeDays = CLOUDXR_LOG_MAX_DEFAULT;
 
     cxrError err = cxrCreateReceiver(&desc, &mReceiver);
@@ -154,6 +154,8 @@ cxrError CloudXRClient::CreateReceiver() {
     }
 
     LOGE("Receiver created!");
+
+//    cxrSendLightProperties(mReceiver, )
 
     err = cxrConnect(mReceiver, GOptions.mServerIP.c_str(), mConnectionFlags);
     if (!(mConnectionFlags & cxrConnectionFlags_ConnectAsync)) {
@@ -172,15 +174,15 @@ cxrError CloudXRClient::CreateReceiver() {
 }
 
 void CloudXRClient::TeardownReceiver() {
-    if (playbackStream) {
+    if (playbackStream != nullptr) {
         playbackStream->close();
     }
 
-    if (recordingStream) {
+    if (recordingStream != nullptr) {
         recordingStream->close();
     }
 
-    if (mReceiver) {
+    if (mReceiver != nullptr) {
         cxrDestroyReceiver(mReceiver);
         mReceiver = nullptr;
     }
@@ -229,7 +231,7 @@ void CloudXRClient::UpdateClientState() {
     }
 }
 
-void CloudXRClient::GetDeviceDesc(cxrDeviceDesc *params) {
+void CloudXRClient::GetDeviceDesc(cxrDeviceDesc *params) const {
     params->deliveryType = cxrDeliveryType_Stereo_RGB;
     params->width = 1832;
     params->height = 1920;
@@ -373,8 +375,10 @@ void CloudXRClient::ProcessControllerEvent(const PVR_InputEvent_ &event) {
     }
 }
 
-bool CloudXRClient::HandleButtonRemap(uint32_t idx, cxrControllerTrackingState &ctl, uint64_t &inputMask,
-                                 PVR_InputId inId, PVR_Button_EventType evType, const PvrCxrButtonMapping mappingSet[],
+bool
+CloudXRClient::HandleButtonRemap(uint32_t idx, cxrControllerTrackingState &ctl, uint64_t &inputMask,
+                                 PVR_InputId inId, PVR_Button_EventType evType,
+                                 const PvrCxrButtonMapping mappingSet[],
                                  int mapSize, bool left6dof) {
 
     for (int i = 0; i < mapSize; ++i) {
@@ -425,7 +429,8 @@ bool CloudXRClient::LatchFrame() {
 
     if (mReceiver) {
         if (mClientState == cxrClientState_StreamingSessionInProgress) {
-            cxrError frameErr = cxrLatchFrame(mReceiver, &framesLatched, cxrFrameMask_All, timeoutMs);
+            cxrError frameErr = cxrLatchFrame(mReceiver, &framesLatched, cxrFrameMask_All,
+                                              timeoutMs);
             frameValid = (frameErr == cxrError_Success);
             if (!frameValid) {
                 if (frameErr == cxrError_Frame_Not_Ready) {
@@ -477,7 +482,7 @@ void CloudXRClient::setHmdMatrix(float *matrix) {
 
 int CloudXRClient::getTextureId(int eye_type) {
     if (latched_) {
-        return reinterpret_cast<int>(framesLatched.frames[eye_type].texture);
+        return reinterpret_cast<uintptr_t>(framesLatched.frames[eye_type].texture);
     }
     return -1;
 }
@@ -530,7 +535,8 @@ cxrError CloudXRClient::QueryChaperone(cxrDeviceDesc *deviceDesc) const {
     deviceDesc->chaperone.origin.m[2][0] = deviceDesc->chaperone.origin.m[2][1] = deviceDesc->chaperone.origin.m[2][3] = 0;
     deviceDesc->chaperone.playArea.v[0] = 2.f * 1.5f * 0.5f;
     deviceDesc->chaperone.playArea.v[1] = 2.f * 1.5f * 0.5f;
-    LOGE("Setting play area to %0.2f x %0.2f", deviceDesc->chaperone.playArea.v[0], deviceDesc->chaperone.playArea.v[1]);
+    LOGE("Setting play area to %0.2f x %0.2f", deviceDesc->chaperone.playArea.v[0],
+         deviceDesc->chaperone.playArea.v[1]);
 
     return cxrError_Success;
 }

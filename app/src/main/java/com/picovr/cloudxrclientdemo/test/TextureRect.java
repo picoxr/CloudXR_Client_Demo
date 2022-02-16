@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory;
 import android.opengl.GLES30;
 import android.opengl.GLUtils;
 import android.util.Log;
+
 import com.picovr.cloudxrclientdemo.R;
 
 import java.io.IOException;

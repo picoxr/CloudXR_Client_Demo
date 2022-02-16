@@ -22,11 +22,11 @@
 
 #ifndef LOGI
 #define LOGI(...) \
-  __android_log_print(ANDROID_LOG_INFO, "hello_ar_example_c", __VA_ARGS__)
+  __android_log_print(ANDROID_LOG_INFO, "CloudXR_Log", __VA_ARGS__)
 #endif  // LOGI
 
 #ifndef LOGE
 #define LOGE(...) \
-  __android_log_print(ANDROID_LOG_ERROR, "hello_ar_example_c", __VA_ARGS__)
+  __android_log_print(ANDROID_LOG_ERROR, "CloudXR_Log", __VA_ARGS__)
 #endif  // LOGE
 #endif

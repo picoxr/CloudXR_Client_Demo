@@ -1,6 +1,10 @@
 package com.picovr.cloudxrclientdemo;
 
+/**
+ * @author Admin
+ */
 public class JniInterface {
+
     public static native void init();
     public static native void connect();
     public static native void latchFrame();
@@ -13,13 +17,12 @@ public class JniInterface {
     public static native void setRightControllerMat(float[] mat4);
 
     public static native int getTextureId(int eyeType);
-    public static native void getTextureHmdMatrix34(float[] hmdMatrix34);
 
-    public static native void setTextureHmdMatrix(MainActivity mainActivity);
+    public static native float[] getTextureHmdMatrix();
 
     public static native void processControllerEvent(int deviceType, int inputId, int eventType);
 
     public static native void processJoystick(float leftX, float leftY, float rightX, float rightY);
 
-    public static native void setHaptic();
+    public static native float[] getHapticData();
 }
