@@ -1,4 +1,4 @@
-#CloudXR Client Demo
+# CloudXR Client Demo
 - **This software contains source code provided by NVIDIA Corporation**.
 - The client decodes and renders content that is streamed from the CloudXR server and collects motion and controller data from the VR headset that is sent to the CloudXR server.The VR headset must be capable of decoding 4k HEVC video @ 60fps. The provided sample client has been tested with the Pico Neo3.
 
