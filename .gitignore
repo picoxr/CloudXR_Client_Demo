@@ -1,3 +1,20 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
 # Created by .ignore support plugin (hsz.mobi)
 ### Android template
 # Built application files
@@ -100,3 +117,4 @@ app/.cxx/
 .idea/checkstyle-idea.xml
 .idea/checkstyleidea.tmp/
 .idea/runConfigurations.xml
+
