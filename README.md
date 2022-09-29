@@ -1,13 +1,13 @@
 # CloudXR Client Demo
 - **This software contains source code provided by NVIDIA Corporation**.
-- The client decodes and renders content that is streamed from the CloudXR server and collects motion and controller data from the VR headset that is sent to the CloudXR server.The VR headset must be capable of decoding 4k HEVC video @ 60fps. The provided sample client has been tested with the Pico Neo3.
+- The client decodes and renders content that is streamed from the CloudXR server and collects motion and controller data from the VR headset that is sent to the CloudXR server.The VR headset must be capable of decoding 4k HEVC video @ 60fps. The provided sample client has been tested with the Pico Neo3 and Pico4.
 
 ## Feature
 - The Project integrates with [CloudXR v3.2](https://developer.nvidia.com/nvidia-cloudxr-sdk-get-started) using Pico [Native XR SDK v2.0.2](https://developer-global.pico-interactive.com/sdk?deviceId=1&platformId=3&itemId=16).
 
 ## Pico CloudXR Client Prerequisites
 ### Required
-- An Android VR headset that supports the Pico Native XR SDK, for example: - Pico Neo3 Pro
+- An Android VR headset that supports the Pico Native XR SDK, for example: - Pico Neo3 Pro or Pico4.
 - Android Debug Bridge (ADB) to install the client application without needing full developer tools.
   
 ### Optional
@@ -55,8 +55,8 @@ This process should generate an `.apk` file in the `CloudXR_Client_Demo\app\buil
 ## Installing the Pico CloudXR Client
 
 > 💡 You do not need these steps if you are running directly from Android Studio, it will install the `.apk` for you.
-1. Place the Pico Neo3 device in developer mode and allow a USB connection in debug mode on the device.
-2. Use a USB cable to connect the Pico Neo3 device to the development system.
+1. Place the Pico device in developer mode and allow a USB connection in debug mode on the device.
+2. Use a USB cable to connect the Pico device to the development system.
 3. If prompted on the device to allow connections, select **Allow**.
 4. In a Command Prompt window, navigate to the folder that contains the `.apk` file that was created by building the sample application.
 5. Use ADB to install the application from the release `.apk` file.
@@ -78,7 +78,7 @@ When the installation is complete, ADB responds with a `Success` message.
       See [Command-Line Options](https://docs.nvidia.com/cloudxr-sdk/usr_guide/cmd_line_options.html#command-line-options) for more information about using launch options and a full list of all available options.
 
 2. Start **SteamVR** on the server system.
-3. Start the **CloudXR Client** app on Pico Neo 3 device.
+3. Start the **CloudXR Client** app on Pico device.
   This process can be completed in one of the following ways:
   - If installed from ADB with a launch options file, launch from VR on the device:
      - Open the main menu.
