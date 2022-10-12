@@ -62,6 +62,8 @@ public:
 
     void SetPoseData(pxrPose pose);
 
+    void GetConnectionStats(uint64_t timeMs);
+
     PxrQuaternionf cxrToQuaternion(const cxrMatrix34 &m);
 
     PxrVector3f cxrGetTranslation(const cxrMatrix34 &m);

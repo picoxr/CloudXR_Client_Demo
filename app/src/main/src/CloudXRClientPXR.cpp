@@ -153,8 +153,7 @@ cxrError CloudXRClientPXR::CreateReceiver() {
         int bufferSizeFrames = playbackStream->getFramesPerBurst() * 2;
         r = playbackStream->setBufferSizeInFrames(bufferSizeFrames);
         if (r != oboe::Result::OK) {
-            LOGE("Failed to set playback stream buffer size to: %d. Error: %s", bufferSizeFrames,
-                 oboe::convertToText(r));
+            LOGE("Failed to set playback stream buffer size to: %d. Error: %s", bufferSizeFrames, oboe::convertToText(r));
             return cxrError_Failed;
         }
 
@@ -219,14 +218,17 @@ cxrError CloudXRClientPXR::CreateReceiver() {
     //the client_lib calls into here when the async connection status changes
     clientProxy.UpdateClientState = [](void *context, cxrClientState state, cxrStateReason reason) {
         switch (state) {
+            case cxrClientState_ReadyToConnect:
+                LOGE("ready to connect...");
+                break;
             case cxrClientState_ConnectionAttemptInProgress:
                 LOGE("Connection attempt in progress...");
                 break;
-            case cxrClientState_StreamingSessionInProgress:
-                LOGE("Async connection succeeded.");
-                break;
             case cxrClientState_ConnectionAttemptFailed:
                 LOGE("Connection attempt failed. [%i]", reason);
+                break;
+            case cxrClientState_StreamingSessionInProgress:
+                LOGE("Async connection succeeded.");
                 break;
             case cxrClientState_Disconnected:
                 LOGE("Server disconnected with reason: [%s]", StateReasonEnumToString(reason));
@@ -364,6 +366,29 @@ void CloudXRClientPXR::GetTrackingState(cxrVRTrackingState *trackingState) {
     }
 }
 
+void CloudXRClientPXR::GetConnectionStats(uint64_t timeMs) {
+    static uint64_t lastTimeMs = 0;
+    if (Receiver == nullptr) {
+        return;
+    }
+    uint64_t diff = timeMs - lastTimeMs;
+    if (diff > 1000) {
+        lastTimeMs = timeMs;
+        cxrConnectionStats stats = {0};
+        cxrError ret = cxrGetConnectionStats(Receiver, &stats);
+        if (ret == cxrError_Success) {
+            LOGI("clientstats framesPerSecond:%f, frameDeliveryTime:%f, frameQueueTime:%f, frameLatchTime:%f", 
+                stats.framesPerSecond, stats.frameDeliveryTime, stats.frameQueueTime, stats.frameLatchTime);
+            LOGI("bandKbps:%6d, bandwidthUtilizationKbps:%5d, bandUtilizationPercent:%d%%, roundTripDelayMs:%d, \
+jitterUs:%d, totalPacketsReceived:%d, totalPacketsLost:%d, totalPacketsDropped:%d, quality:%d, qualityReasons:%d",
+                stats.bandwidthAvailableKbps, stats.bandwidthUtilizationKbps, stats.bandwidthUtilizationPercent, stats.roundTripDelayMs,
+                stats.jitterUs, stats.totalPacketsReceived, stats.totalPacketsLost, stats.totalPacketsDropped, stats.quality, stats.qualityReasons);    
+        } else {
+            LOGE("cxrGetConnectionStats error %d", ret);
+        }
+    }
+}
+
 void CloudXRClientPXR::SetPoseData(pxrPose pose) {
     // +1.7 height
     headPose = pose.headPose;
@@ -454,22 +479,17 @@ void CloudXRClientPXR::ProcessControllers() {
                     }
                 }
 
-                TrackingState.controller[hand].scalarComps[cxrButton_System] = state.homeValue;
                 setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[0]);
+                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[1]);
+                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[2]);
+                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[3]);
+                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[4]);
 
                 TrackingState.controller[hand].scalarComps[cxrAnalog_Trigger] = state.triggerValue;
-                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[2]);
-
-                TrackingState.controller[hand].scalarComps[cxrButton_Trigger_Touch] = state.triggerTouchValue;
-                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[1]);
-
-                TrackingState.controller[hand].scalarComps[cxrButton_Touchpad_Click] = state.touchpadValue;
-                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[3]);
-
-                TrackingState.controller[hand].scalarComps[cxrAnalog_Grip] = state.gripValue;
-                setBooleanButton(TrackingState.controller[hand], btnId, extraRemaps[4]);
                 TrackingState.controller[hand].scalarComps[cxrAnalog_JoystickX] = state.Joystick.x;
                 TrackingState.controller[hand].scalarComps[cxrAnalog_JoystickY] = state.Joystick.y;
+                TrackingState.controller[hand].scalarComps[cxrAnalog_Grip] = state.gripValue;
+
                 TrackingState.controller[hand].booleanCompsChanged = priorCompsState ^ TrackingState.controller[hand].booleanComps;
             }
         }
@@ -480,7 +500,7 @@ bool CloudXRClientPXR::setBooleanButton(cxrControllerTrackingState &ctl, const u
     const uint64_t prevComps = ctl.booleanComps;
     const uint64_t btnMask = 1ULL << mapping.cxrId;
 
-    if (inBitfield & mapping.pxrId) {
+    if (inBitfield == mapping.pxrId) {
         ctl.booleanComps |= btnMask;
     } else {
         ctl.booleanComps &= ~btnMask;
@@ -561,7 +581,7 @@ cxrError CloudXRClientPXR::QueryChaperone(cxrDeviceDesc *deviceDesc) {
     deviceDesc->chaperone.origin.m[2][0] = deviceDesc->chaperone.origin.m[2][1] = deviceDesc->chaperone.origin.m[2][3] = 0;
     deviceDesc->chaperone.playArea.v[0] = 2.f * 1.5f * 0.5f;
     deviceDesc->chaperone.playArea.v[1] = 2.f * 1.5f * 0.5f;
-    LOGE("Setting play area to %0.2f x %0.2f", deviceDesc->chaperone.playArea.v[0], deviceDesc->chaperone.playArea.v[1]);
+    LOGI("Setting play area to %0.2f x %0.2f", deviceDesc->chaperone.playArea.v[0], deviceDesc->chaperone.playArea.v[1]);
 
     return cxrError_Success;
 }

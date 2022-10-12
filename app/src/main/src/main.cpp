@@ -173,7 +173,9 @@ void init_scene(struct android_app *app) {
 }
 
 void render_frame(android_app *app, CloudXRClientPXR *cloudXR) {
-    if (!Pxr_IsRunning()) return;
+    if (!Pxr_IsRunning()) {
+        return;
+    }
 
     auto *s = (AndroidAppState *) app->userData;
     int sensorFrameIndex;
@@ -208,6 +210,7 @@ void render_frame(android_app *app, CloudXRClientPXR *cloudXR) {
     }
 
     cloudXR->SetPoseData(s->pose);
+    cloudXR->GetConnectionStats(uint64_t(predictedDisplayTimeMs));
 
     cxrFramesLatched framesLatched;
     bool frameValid = cloudXR->LatchFrame(&framesLatched);
@@ -222,7 +225,7 @@ void render_frame(android_app *app, CloudXRClientPXR *cloudXR) {
 
     PxrLayerProjection layerProjection = {};
     layerProjection.header.layerId = s->eyeLayerId;
-    layerProjection.header.layerFlags = 0;
+    layerProjection.header.layerFlags |= PXR_LAYER_FLAG_USE_EXTERNAL_HEAD_POSE;
     layerProjection.header.colorScale[0] = 1.0f;
     layerProjection.header.colorScale[1] = 1.0f;
     layerProjection.header.colorScale[2] = 1.0f;
@@ -237,7 +240,6 @@ void render_frame(android_app *app, CloudXRClientPXR *cloudXR) {
 
     Pxr_SubmitLayer((PxrLayerHeader *) &layerProjection);
     Pxr_EndFrame();
-
 }
 
 /**
