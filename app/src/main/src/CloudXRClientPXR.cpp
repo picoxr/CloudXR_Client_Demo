@@ -1,5 +1,5 @@
 // Created by Welch on 2021/7/20.
-
+#include <sys/system_properties.h>
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 #include "CloudXRClientPXR.h"
@@ -285,18 +285,20 @@ cxrError CloudXRClientPXR::Connect() {
 }
 
 void CloudXRClientPXR::TeardownReceiver() {
-    if (playbackStream != nullptr) {
+    if (mHadTearDown) {
+        return;
+    }
+    if (playbackStream) {
         playbackStream->close();
     }
-
-    if (recordingStream != nullptr) {
+    if (recordingStream) {
         recordingStream->close();
     }
-
     if (Receiver != nullptr) {
         cxrDestroyReceiver(Receiver);
         Receiver = nullptr;
     }
+    mHadTearDown = true;
 }
 
 void CloudXRClientPXR::UpdateClientState() {
@@ -327,6 +329,13 @@ void CloudXRClientPXR::UpdateClientState() {
 }
 
 void CloudXRClientPXR::GetDeviceDesc(cxrDeviceDesc *params) const {
+    int32_t defaultFoveation = 0;
+    char buffer[128] = {0};
+    __system_property_get("ro.product.model", buffer);
+    if (std::string(buffer) == "Pico Neo 3") {
+        defaultFoveation = 90;
+    }
+    LOGI("ro.product.model:%s, default foveation:%d", buffer, defaultFoveation);
 
     uint32_t maxW, maxH, recommendW, recommendH;
     Pxr_GetConfigViewsInfos(&maxW, &maxH, &recommendW, &recommendH);
@@ -343,7 +352,7 @@ void CloudXRClientPXR::GetDeviceDesc(cxrDeviceDesc *params) const {
     params->ctrlType = cxrControllerType_OculusTouch;
     params->disablePosePrediction = false;
     params->angularVelocityInDeviceSpace = false;
-    params->foveatedScaleFactor = (GOptions.mFoveation < 100) ? GOptions.mFoveation : 0;
+    params->foveatedScaleFactor = (GOptions.mFoveation < 100) ? GOptions.mFoveation : defaultFoveation;
     params->maxResFactor = 1.0f;
 
     params->proj[0][0] = -1.25;

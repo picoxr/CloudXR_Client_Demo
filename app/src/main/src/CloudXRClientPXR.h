@@ -69,6 +69,7 @@ public:
     PxrVector3f cxrGetTranslation(const cxrMatrix34 &m);
 
 protected:
+    bool mHadTearDown = false;
     bool mRefreshChanged = false;
     float_t mTargetDisplayRefresh = 0;
 

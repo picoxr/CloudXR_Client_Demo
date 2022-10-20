@@ -14,15 +14,13 @@ const int MaxEventCount = 20;
 
 struct AndroidAppState {
     bool resumed = false;
-
     int recommendW{};
     int recommendH{};
     int eyeLayerId = 0;
     uint64_t layerImages[PXR_EYE_MAX][3] = {0};
-
     PxrEventDataBuffer *eventDataPointer[MaxEventCount]{};
-
     pxrPose pose{};
+    CloudXRClientPXR *cloudxr = nullptr;
 };
 
 /**
@@ -72,6 +70,9 @@ void app_handle_cmd(struct android_app *app, int32_t cmd) {
         case APP_CMD_TERM_WINDOW: {
             LOGI("surfaceDestroyed()");
             LOGI("    APP_CMD_TERM_WINDOW");
+            if (appState->cloudxr) {
+                appState->cloudxr->TeardownReceiver();
+            }
             break;
             default:
                 break;
@@ -260,6 +261,7 @@ void android_main(struct android_app *app) {
         pxrapi_init(app);
 
         auto *cloudXR = new CloudXRClientPXR();
+        appState.cloudxr = cloudXR;
 
         while (app->destroyRequested == 0) {
             // Read all pending events.
@@ -284,7 +286,7 @@ void android_main(struct android_app *app) {
 
             render_frame(app, cloudXR);
         }
-
+        cloudXR->TeardownReceiver();
         pxrapi_deinit(app);
 
     } catch (const std::exception &ex) {
