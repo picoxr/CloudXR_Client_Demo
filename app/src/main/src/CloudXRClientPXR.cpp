@@ -46,6 +46,51 @@ const char *StateReasonEnumToString(cxrStateReason reason) {
     }
 }
 
+CloudXRClientPXR::CloudXRClientPXR() : mIsPaused(true), mWasPaused(true) {
+    Initialize();
+}
+
+CloudXRClientPXR::~CloudXRClientPXR() {
+}
+
+bool CloudXRClientPXR::Start() {
+    LOGE("Start......");
+    CreateReceiver();
+    Connect();
+    return true;
+}
+
+bool CloudXRClientPXR::Stop() {
+    LOGE("Stop......");
+    TeardownReceiver();
+    return true;
+}
+
+void CloudXRClientPXR::SetPaused(bool pause) {
+    mIsPaused = pause;
+}
+
+void CloudXRClientPXR::HandleStateChanges() {
+    if (mIsPaused == mWasPaused) {
+        return;
+    }
+    if (mIsPaused == false && mClientState != cxrClientState_Exiting) {
+        if (Pxr_IsRunning()) {
+            Start();
+        } else {
+            return;
+        }
+    } else {
+        if (mIsPaused || mClientState == cxrClientState_Exiting) {
+            Stop();
+            if (mClientState != cxrClientState_Exiting) {
+                mClientState = cxrClientState_ReadyToConnect;
+            }
+        }
+    }
+    mWasPaused = mIsPaused;
+}
+
 PxrQuaternionf CloudXRClientPXR::cxrToQuaternion(const cxrMatrix34 &m) {
     PxrQuaternionf q;
     const float trace = m.m[0][0] + m.m[1][1] + m.m[2][2];
@@ -144,22 +189,22 @@ cxrError CloudXRClientPXR::CreateReceiver() {
         playbackStreamBuilder.setChannelCount(oboe::ChannelCount::Stereo);
         playbackStreamBuilder.setSampleRate(CXR_AUDIO_SAMPLING_RATE);
 
-        oboe::Result r = playbackStreamBuilder.openStream(playbackStream);
-        if (r != oboe::Result::OK) {
-            LOGE("Failed to open playback stream. Error: %s", oboe::convertToText(r));
+        oboe::Result ret = playbackStreamBuilder.openStream(playbackStream);
+        if (ret != oboe::Result::OK) {
+            LOGE("Failed to open playback stream. Error: %s", oboe::convertToText(ret));
             return cxrError_Failed;
         }
 
         int bufferSizeFrames = playbackStream->getFramesPerBurst() * 2;
-        r = playbackStream->setBufferSizeInFrames(bufferSizeFrames);
-        if (r != oboe::Result::OK) {
-            LOGE("Failed to set playback stream buffer size to: %d. Error: %s", bufferSizeFrames, oboe::convertToText(r));
+        ret = playbackStream->setBufferSizeInFrames(bufferSizeFrames);
+        if (ret != oboe::Result::OK) {
+            LOGE("Failed to set playback stream buffer size to: %d. Error: %s", bufferSizeFrames, oboe::convertToText(ret));
             return cxrError_Failed;
         }
 
-        r = playbackStream->start();
-        if (r != oboe::Result::OK) {
-            LOGE("Failed to start playback stream. Error: %s", oboe::convertToText(r));
+        ret = playbackStream->start();
+        if (ret != oboe::Result::OK) {
+            LOGE("Failed to start playback stream. Error: %s", oboe::convertToText(ret));
             return cxrError_Failed;
         }
     }
@@ -176,20 +221,20 @@ cxrError CloudXRClientPXR::CreateReceiver() {
         recordingStreamBuilder.setInputPreset(oboe::InputPreset::VoiceCommunication);
         recordingStreamBuilder.setDataCallback(this);
 
-        oboe::Result r = recordingStreamBuilder.openStream(recordingStream);
-        if (r != oboe::Result::OK) {
-            LOGE("Failed to open recording stream. Error: %s", oboe::convertToText(r));
+        oboe::Result ret = recordingStreamBuilder.openStream(recordingStream);
+        if (ret != oboe::Result::OK) {
+            LOGE("Failed to open recording stream. Error: %s", oboe::convertToText(ret));
             return cxrError_Failed;
         }
 
-        r = recordingStream->start();
-        if (r != oboe::Result::OK) {
-            LOGE("Failed to start recording stream. Error: %s", oboe::convertToText(r));
+        ret = recordingStream->start();
+        if (ret != oboe::Result::OK) {
+            LOGE("Failed to start recording stream. Error: %s", oboe::convertToText(ret));
             return cxrError_Failed;
         }
     }
 
-    LOGE("Trying to create Receiver at %s.", GOptions.mServerIP.c_str());
+    LOGI("Trying to create Receiver at %s.", GOptions.mServerIP.c_str());
     cxrGraphicsContext context{cxrGraphicsContext_GLES};
     context.egl.display = eglGetCurrentDisplay();
     context.egl.context = eglGetCurrentContext();
@@ -260,7 +305,7 @@ cxrError CloudXRClientPXR::CreateReceiver() {
         return err;
     }
 
-    LOGE("Receiver created!");
+    LOGI("Receiver created!");
     return cxrError_Success;
 }
 
@@ -285,11 +330,9 @@ cxrError CloudXRClientPXR::Connect() {
 }
 
 void CloudXRClientPXR::TeardownReceiver() {
-    if (mHadTearDown) {
-        return;
-    }
+    LOGE("TeardownReceiver...");
     if (playbackStream) {
-        playbackStream->close();
+        playbackStream->stop();
     }
     if (recordingStream) {
         recordingStream->close();
@@ -298,7 +341,6 @@ void CloudXRClientPXR::TeardownReceiver() {
         cxrDestroyReceiver(Receiver);
         Receiver = nullptr;
     }
-    mHadTearDown = true;
 }
 
 void CloudXRClientPXR::UpdateClientState() {
@@ -352,6 +394,7 @@ void CloudXRClientPXR::GetDeviceDesc(cxrDeviceDesc *params) const {
     params->ctrlType = cxrControllerType_OculusTouch;
     params->disablePosePrediction = false;
     params->angularVelocityInDeviceSpace = false;
+    params->disableVVSync = false;
     params->foveatedScaleFactor = (GOptions.mFoveation < 100) ? GOptions.mFoveation : defaultFoveation;
     params->maxResFactor = 1.0f;
 
@@ -377,7 +420,7 @@ void CloudXRClientPXR::GetTrackingState(cxrVRTrackingState *trackingState) {
 
 void CloudXRClientPXR::GetConnectionStats(uint64_t timeMs) {
     static uint64_t lastTimeMs = 0;
-    if (Receiver == nullptr) {
+    if (Receiver == nullptr || mClientState != cxrClientState_StreamingSessionInProgress) {
         return;
     }
     uint64_t diff = timeMs - lastTimeMs;
@@ -388,8 +431,8 @@ void CloudXRClientPXR::GetConnectionStats(uint64_t timeMs) {
         if (ret == cxrError_Success) {
             LOGI("clientstats framesPerSecond:%f, frameDeliveryTime:%f, frameQueueTime:%f, frameLatchTime:%f", 
                 stats.framesPerSecond, stats.frameDeliveryTime, stats.frameQueueTime, stats.frameLatchTime);
-            LOGI("bandKbps:%6d, bandwidthUtilizationKbps:%5d, bandUtilizationPercent:%d%%, roundTripDelayMs:%d, \
-jitterUs:%d, totalPacketsReceived:%d, totalPacketsLost:%d, totalPacketsDropped:%d, quality:%d, qualityReasons:%d",
+            LOGI("bandKbps:%6d, bandwidthUtilizationKbps:%5d, bandUtilizationPercent:%d%%, roundTripDelayMs:%d, "
+                "jitterUs:%d, totalPacketsReceived:%d, totalPacketsLost:%d, totalPacketsDropped:%d, quality:%d, qualityReasons:%d",
                 stats.bandwidthAvailableKbps, stats.bandwidthUtilizationKbps, stats.bandwidthUtilizationPercent, stats.roundTripDelayMs,
                 stats.jitterUs, stats.totalPacketsReceived, stats.totalPacketsLost, stats.totalPacketsDropped, stats.quality, stats.qualityReasons);    
         } else {
@@ -399,13 +442,14 @@ jitterUs:%d, totalPacketsReceived:%d, totalPacketsLost:%d, totalPacketsDropped:%
 }
 
 void CloudXRClientPXR::SetPoseData(pxrPose pose) {
-    // +1.7 height
+    // +1.7 metre height
+    const float offsetHeight = 1.7f; 
     headPose = pose.headPose;
-    headPose.pose.position.y += 1.7;
+    headPose.pose.position.y += offsetHeight;
     leftControllerPose = pose.leftControllerPose;
-    leftControllerPose.pose.position.y += 1.7;
+    leftControllerPose.pose.position.y += offsetHeight;
     rightControllerPose = pose.rightControllerPose;
-    rightControllerPose.pose.position.y += 1.7;
+    rightControllerPose.pose.position.y += offsetHeight;
 }
 
 void CloudXRClientPXR::DoTracking() {
@@ -523,7 +567,7 @@ bool CloudXRClientPXR::setBooleanButton(cxrControllerTrackingState &ctl, const u
 }
 
 cxrBool CloudXRClientPXR::RenderAudio(const cxrAudioFrame *audioFrame) {
-    if (!playbackStream) {
+    if (!playbackStream.get()) {
         return cxrFalse;
     }
 
@@ -560,10 +604,7 @@ bool CloudXRClientPXR::LatchFrame(cxrFramesLatched *framesLatched) {
                 }
             }
         }
-    } else {
-        return cxrError_Failed;
     }
-
     return frameValid;
 }
 
@@ -615,10 +656,4 @@ void CloudXRClientPXR::TriggerHaptic(const cxrHapticFeedback *hapticFeedback) {
     if (Pxr_GetControllerConnectStatus(haptic.controllerIdx) == 1) {
         Pxr_SetControllerVibration(haptic.controllerIdx, haptic.amplitude, haptic.seconds * 1000);
     }
-}
-
-CloudXRClientPXR::CloudXRClientPXR() {
-    Initialize();
-    CreateReceiver();
-    Connect();
 }

@@ -19,11 +19,23 @@
 class CloudXRClientPXR : public oboe::AudioStreamDataCallback {
 
 public:
+
+    CloudXRClientPXR();
+
+    ~CloudXRClientPXR();
+
     void Initialize();
 
+    void SetPaused(bool pause);
+
+    bool Start();
+
+    bool Stop();
+
+    void HandleStateChanges();
+
     // AudioStreamDataCallback interface
-    oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboeStream,
-                                          void *audioData, int32_t numFrames) override;
+    oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboeStream, void *audioData, int32_t numFrames) override;
 
     // CloudXR interface callbacks
     void GetTrackingState(cxrVRTrackingState *trackingState);
@@ -58,8 +70,6 @@ public:
 
     void FillBackground() const;
 
-    CloudXRClientPXR();
-
     void SetPoseData(pxrPose pose);
 
     void GetConnectionStats(uint64_t timeMs);
@@ -69,7 +79,6 @@ public:
     PxrVector3f cxrGetTranslation(const cxrMatrix34 &m);
 
 protected:
-    bool mHadTearDown = false;
     bool mRefreshChanged = false;
     float_t mTargetDisplayRefresh = 0;
 
@@ -84,6 +93,9 @@ protected:
     PxrSensorState headPose = {};
     PxrSensorState leftControllerPose = {};
     PxrSensorState rightControllerPose = {};
+
+    bool mIsPaused;
+    bool mWasPaused;
 
     uint32_t mDefaultBGColor = 0xFF000000; // black to start until we set around OnResume.
     uint32_t mBGColor = mDefaultBGColor;

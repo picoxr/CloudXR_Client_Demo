@@ -7,7 +7,7 @@ struct IGraphicsPlugin {
 
     virtual void InitializeDevice() = 0;
 
-    virtual void RenderView(int width, int height, uint64_t sdk2DTexture, uint64_t oesTexture) = 0;
+    virtual void RenderView(bool frameValid, int width, int height, uint64_t sdk2DTexture, uint64_t oesTexture) = 0;
 
 };
 

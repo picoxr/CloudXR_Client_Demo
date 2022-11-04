@@ -195,7 +195,7 @@ namespace {
             return true;
         }
 
-        void RenderView(int width, int height, uint64_t sdk2DTexture, uint64_t oesTexture) override {
+        void RenderView(bool frameValid, int width, int height, uint64_t sdk2DTexture, uint64_t oesTexture) override {
 
             glViewport(0, 0, width, height);
             glClearColor(DarkSlateGray[0], DarkSlateGray[1], DarkSlateGray[2], DarkSlateGray[3]);
@@ -211,11 +211,17 @@ namespace {
             }
             glUseProgram(mFboProgram);
             glBindVertexArray(mVaoId);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_EXTERNAL_OES, oesTexture);
-            GO_CHECK_GL_ERROR();
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const void *) 0);
-            GO_CHECK_GL_ERROR();
+
+            if (frameValid) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_EXTERNAL_OES, oesTexture);
+                GO_CHECK_GL_ERROR();
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const void *) 0);
+                GO_CHECK_GL_ERROR();
+            } else {
+                //glClear(GL_COLOR_BUFFER_BIT);
+            }
+
             glBindVertexArray(0);
             glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
