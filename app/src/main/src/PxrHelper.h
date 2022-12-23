@@ -28,6 +28,7 @@ typedef enum {
     PXR_Joystick = 7,
     PXR_Touch_Trigger = 8,
     PXR_Touchpad = 9,
+    PXR_Menu = 10,
 } PxrInputId;
 
 static inline PxrInputId GetInputId(PxrControllerHandness hand, PxrControllerInputState state) {
@@ -65,6 +66,9 @@ static inline PxrInputId GetInputId(PxrControllerHandness hand, PxrControllerInp
     }
     if (state.Joystick.x != 0 || state.Joystick.y != 0) {
         return PXR_Joystick;
+    }
+    if (state.backValue) {
+        return PXR_Menu;
     }
 
     return NONE;

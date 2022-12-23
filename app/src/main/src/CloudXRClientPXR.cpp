@@ -375,9 +375,10 @@ void CloudXRClientPXR::GetDeviceDesc(cxrDeviceDesc *params) const {
     char buffer[128] = {0};
     __system_property_get("ro.product.model", buffer);
     if (std::string(buffer) == "Pico Neo 3") {
-        defaultFoveation = 90;
+        // the best value tested
+        defaultFoveation = 88;
     }
-    LOGI("ro.product.model:%s, default foveation:%d", buffer, defaultFoveation);
+    LOGI("ro.product.model:%s, default foveation:%d, GOptions.mFoveation:%d", buffer, defaultFoveation, GOptions.mFoveation);
 
     uint32_t maxW, maxH, recommendW, recommendH;
     Pxr_GetConfigViewsInfos(&maxW, &maxH, &recommendW, &recommendH);
@@ -395,7 +396,7 @@ void CloudXRClientPXR::GetDeviceDesc(cxrDeviceDesc *params) const {
     params->disablePosePrediction = false;
     params->angularVelocityInDeviceSpace = false;
     params->disableVVSync = false;
-    params->foveatedScaleFactor = (GOptions.mFoveation < 100) ? GOptions.mFoveation : defaultFoveation;
+    params->foveatedScaleFactor = (GOptions.mFoveation > 0 && GOptions.mFoveation < 100) ? GOptions.mFoveation : defaultFoveation;
     params->maxResFactor = 1.0f;
 
     params->proj[0][0] = -1.25;
@@ -491,7 +492,7 @@ void CloudXRClientPXR::ProcessControllers() {
     // these are mappings referenced BY INDEX for manual remap logic
     const static PxrCxrButtonMapping extraRemaps[] =
             {
-                    {PXR_Home,          cxrButton_System,         "BtnSystem"},
+                    {PXR_Menu,          cxrButton_System,         "BtnSystem"},
                     {PXR_Touch_Trigger, cxrButton_Trigger_Touch,  "TouchTrig"},
                     {PXR_Trigger,       cxrButton_Trigger_Click,  "BtnTrig"},
                     {PXR_Touchpad,      cxrButton_Touchpad_Click, "TouchTrack"},
@@ -522,12 +523,16 @@ void CloudXRClientPXR::ProcessControllers() {
 
                 if (hand == PXR_CONTROLLER_LEFT) {
                     for (auto &mapping: Neo3LeftRemaps) {
-                        if (mapping.cxrId == cxrButton_Num) continue;
+                        if (mapping.cxrId == cxrButton_Num) {
+                            continue;
+                        }
                         setBooleanButton(TrackingState.controller[hand], btnId, mapping);
                     }
                 } else {
                     for (auto &mapping: Neo3RightRemaps) {
-                        if (mapping.cxrId == cxrButton_Num) continue;
+                        if (mapping.cxrId == cxrButton_Num) {
+                            continue;
+                        }
                         setBooleanButton(TrackingState.controller[hand], btnId, mapping);
                     }
                 }
