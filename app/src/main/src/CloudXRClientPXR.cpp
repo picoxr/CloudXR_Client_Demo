@@ -1,4 +1,4 @@
-// Created by Welch on 2021/7/20.
+// Copyright (2021-2023) Bytedance Ltd. and/or its affiliates 
 #include <sys/system_properties.h>
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
@@ -286,7 +286,7 @@ cxrError CloudXRClientPXR::CreateReceiver() {
         LOGE("Client state updated: %s, reason: %s", ClientStateEnumToString(state), StateReasonEnumToString(reason));
     };
 
-    cxrReceiverDesc desc = {0};
+    cxrReceiverDesc desc = { 0 };
     desc.requestedVersion = CLOUDXR_VERSION_DWORD;
     desc.deviceDesc = mDeviceDesc;
     desc.clientCallbacks = clientProxy;
@@ -296,6 +296,7 @@ cxrError CloudXRClientPXR::CreateReceiver() {
     desc.receiverMode = cxrStreamingMode_XR;
     desc.debugFlags = GOptions.mDebugFlags;
     desc.debugFlags |= cxrDebugFlags_EnableAImageReaderDecoder;
+    desc.debugFlags |= cxrDebugFlags_OutputLinearRGBColor;
     desc.logMaxSizeKB = CLOUDXR_LOG_MAX_DEFAULT;
     desc.logMaxAgeDays = CLOUDXR_LOG_MAX_DEFAULT;
 
@@ -371,15 +372,6 @@ void CloudXRClientPXR::UpdateClientState() {
 }
 
 void CloudXRClientPXR::GetDeviceDesc(cxrDeviceDesc *params) const {
-    int32_t defaultFoveation = 0;
-    char buffer[128] = {0};
-    __system_property_get("ro.product.model", buffer);
-    if (std::string(buffer) == "Pico Neo 3") {
-        // the best value tested
-        defaultFoveation = 88;
-    }
-    LOGI("ro.product.model:%s, default foveation:%d, GOptions.mFoveation:%d", buffer, defaultFoveation, GOptions.mFoveation);
-
     uint32_t maxW, maxH, recommendW, recommendH;
     Pxr_GetConfigViewsInfos(&maxW, &maxH, &recommendW, &recommendH);
 
@@ -391,24 +383,29 @@ void CloudXRClientPXR::GetDeviceDesc(cxrDeviceDesc *params) const {
     params->predOffset = -0.02f;
     params->receiveAudio = true;
     params->sendAudio = false;
+    params->embedInfoInVideo = false;
     params->posePollFreq = 0;
     params->ctrlType = cxrControllerType_OculusTouch;
     params->disablePosePrediction = false;
     params->angularVelocityInDeviceSpace = false;
     params->disableVVSync = false;
-    params->foveatedScaleFactor = (GOptions.mFoveation > 0 && GOptions.mFoveation < 100) ? GOptions.mFoveation : defaultFoveation;
+    params->foveatedScaleFactor = (GOptions.mFoveation > 0 && GOptions.mFoveation < 100) ? GOptions.mFoveation : 0;
     params->maxResFactor = 1.0f;
 
-    params->proj[0][0] = -1.25;
-    params->proj[0][1] = 1.25;
-    params->proj[0][2] = -1.25;
-    params->proj[0][3] = 1.25;
+    for (auto eye = 0; eye < PXR_EYE_MAX; eye++) {
+        float fovLeft, fovRight, fovUp, fovDown;
+        int retsult = Pxr_GetFov((PxrEyeType)eye, &fovLeft, &fovRight, &fovUp, &fovDown);
+        if (retsult != 0) {
+            LOGE("Pxr_GetFov error:%d", retsult);
+        } else {
+            LOGI("Pxr_GetFov eye:%d fovLeft:%f, fovRight:%f, fovUp:%f, fovDown:%f", eye, fovLeft, fovRight, fovUp, fovDown);
+        }
+        params->proj[eye][0] = tanf(fovLeft);
+        params->proj[eye][1] = tanf(fovRight);
+        params->proj[eye][2] = -tanf(fovUp);
+        params->proj[eye][3] = -tanf(fovDown);
+    }
 
-    params->proj[1][0] = params->proj[0][0];
-    params->proj[1][1] = params->proj[0][1];
-
-    params->proj[1][2] = params->proj[0][2];
-    params->proj[1][3] = params->proj[0][3];
     QueryChaperone(params);
 }
 
@@ -613,14 +610,36 @@ bool CloudXRClientPXR::LatchFrame(cxrFramesLatched *framesLatched) {
     return frameValid;
 }
 
-void CloudXRClientPXR::BlitFrame(cxrFramesLatched *framesLatched, bool frameValid) {
-    for (int eye = 0; eye < PXR_EYE_MAX; eye++) {
-        if (frameValid) {
-            cxrBlitFrame(Receiver, framesLatched, 1 << eye);
-        } else {
-            FillBackground();
-        }
+void CloudXRClientPXR::BlitFrame(cxrFramesLatched *framesLatched, bool frameValid, int eye) {
+    if (frameValid) {
+        cxrBlitFrame(Receiver, framesLatched, 1 << eye);
+    } else {
+        FillBackground();
     }
+}
+
+bool CloudXRClientPXR::SetupFramebuffer(GLuint colorTexture, uint32_t eye) {
+    if(Framebuffers[eye] == 0) {
+        GLuint framebuffer;
+        glGenFramebuffers(1, &framebuffer);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+
+        GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            LOGI("Incomplete frame buffer object!");
+            return false;
+        }
+        Framebuffers[eye] = framebuffer;
+        LOGI("Created FBO %d for eye%d texture %d.", framebuffer, eye, colorTexture);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, Framebuffers[eye]);
+    } else {
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, Framebuffers[eye]);
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+    }
+    return true;
 }
 
 void CloudXRClientPXR::ReleaseFrame(cxrFramesLatched *framesLatched) {

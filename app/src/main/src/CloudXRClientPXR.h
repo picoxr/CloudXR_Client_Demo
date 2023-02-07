@@ -1,7 +1,4 @@
-//
-// Created by Welch
-//
-
+// Copyright (2021-2023) Bytedance Ltd. and/or its affiliates 
 #ifndef CLIENT_APP_PXR_MAIN_H
 #define CLIENT_APP_PXR_MAIN_H
 
@@ -34,10 +31,8 @@ public:
 
     void HandleStateChanges();
 
-    // AudioStreamDataCallback interface
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboeStream, void *audioData, int32_t numFrames) override;
 
-    // CloudXR interface callbacks
     void GetTrackingState(cxrVRTrackingState *trackingState);
 
     void TriggerHaptic(const cxrHapticFeedback *);
@@ -54,7 +49,7 @@ public:
 
     bool LatchFrame(cxrFramesLatched *framesLatched);
 
-    void BlitFrame(cxrFramesLatched *framesLatched, bool frameValid);
+    void BlitFrame(cxrFramesLatched *framesLatched, bool frameValid, int eye);
 
     void ReleaseFrame(cxrFramesLatched *framesLatched);
 
@@ -77,6 +72,8 @@ public:
     PxrQuaternionf cxrToQuaternion(const cxrMatrix34 &m);
 
     PxrVector3f cxrGetTranslation(const cxrMatrix34 &m);
+
+    bool SetupFramebuffer(GLuint colorTexture, uint32_t eye);
 
 protected:
     bool mRefreshChanged = false;
@@ -105,6 +102,8 @@ protected:
         cxrButtonId cxrId;
         char nameStr[32];
     };
+
+    GLuint Framebuffers[2];
 
     bool setBooleanButton(cxrControllerTrackingState &ctl, const uint64_t &inBitfield, const PxrCxrButtonMapping &mapping);
 

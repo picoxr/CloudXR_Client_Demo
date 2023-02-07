@@ -111,7 +111,7 @@ void pxrapi_init_layers(struct android_app *app) {
     layerParam.mipmapCount = 1;
     layerParam.sampleCount = 1;
     layerParam.arraySize = 1;
-    layerParam.format = GL_RGBA8;
+    layerParam.format = GL_RGBA8;//GL_SRGB8_ALPHA8;
     int ret = Pxr_CreateLayer(&layerParam);
     LOGI("Pxr_CreateLayer ret = %d", ret);
 
@@ -169,13 +169,6 @@ void dispatch_events(struct android_app *app) {
     }
 }
 
-std::shared_ptr<IGraphicsPlugin> graphicsPlugin;
-
-void init_scene(struct android_app *app) {
-    graphicsPlugin = CreateGraphicsPlugin_OpenGLES();
-    graphicsPlugin->InitializeDevice();
-}
-
 void render_frame(android_app *app, CloudXRClientPXR *cloudXR) {
     if (!Pxr_IsRunning()) {
         return;
@@ -222,8 +215,13 @@ void render_frame(android_app *app, CloudXRClientPXR *cloudXR) {
     int imageIndex = 0;
     Pxr_GetLayerNextImageIndex(0, &imageIndex);
 
-    graphicsPlugin->RenderView(frameValid, s->recommendW, s->recommendH, s->layerImages[PXR_EYE_LEFT][imageIndex], reinterpret_cast<uintptr_t>(framesLatched.frames[PXR_EYE_LEFT].texture));
-    graphicsPlugin->RenderView(frameValid, s->recommendW, s->recommendH, s->layerImages[PXR_EYE_RIGHT][imageIndex], reinterpret_cast<uintptr_t>(framesLatched.frames[PXR_EYE_RIGHT].texture));
+    for (int eye = 0; eye < PXR_EYE_MAX; eye++) {
+        if (cloudXR->SetupFramebuffer(s->layerImages[eye][imageIndex], eye)){
+            cxrVideoFrame &vf = framesLatched.frames[eye];
+            glViewport(0, 0, vf.widthFinal, vf.heightFinal);
+            cloudXR->BlitFrame(&framesLatched, frameValid, eye);
+        }
+    }
 
     PxrLayerProjection layerProjection = {};
     layerProjection.header.layerId = s->eyeLayerId;
@@ -252,7 +250,6 @@ void render_frame(android_app *app, CloudXRClientPXR *cloudXR) {
  * event loop for receiving input events and doing other things.
  */
 void android_main(struct android_app *app) {
-
     JNIEnv *Env;
     AndroidAppState appState = {};
     app->activity->vm->AttachCurrentThread(&Env, nullptr);
@@ -262,7 +259,8 @@ void android_main(struct android_app *app) {
     auto *cloudXR = new CloudXRClientPXR();
     appState.cloudxr = cloudXR;
 
-    init_scene(app);
+    std::shared_ptr<IGraphicsPlugin> graphicsPlugin=  CreateGraphicsPlugin_OpenGLES();
+    graphicsPlugin->InitializeDevice();
     pxrapi_init(app);
 
     while (app->destroyRequested == 0) {
